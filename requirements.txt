@@ -5,5 +5,5 @@ pydantic==2.5.3
 python-dotenv==1.0.0
 python-multipart==0.0.6
 cryptography==42.0.8
-pydantic-core==2.14.6
---prefer-binary
+# Force prebuilt wheel — no Rust build
+pydantic-core==2.14.6 --only-binary=:all:
