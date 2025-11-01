@@ -1,0 +1,573 @@
+import React, { useState, useEffect } from 'react';
+import { Camera, CheckCircle, XCircle, Eye, LogOut, Plus, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+
+const API_BASE = 'https://approval-workflow-api.onrender.com/';
+
+const GlassCard = ({ children, className = '' }) => (
+  <div className={`backdrop-blur-lg bg-white/10 rounded-2xl border border-white/20 shadow-2xl ${className}`}>
+    {children}
+  </div>
+);
+
+const Button = ({ children, onClick, variant = 'primary', className = '', disabled }) => {
+  const variants = {
+    primary: 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700',
+    success: 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700',
+    danger: 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700',
+    secondary: 'bg-white/20 hover:bg-white/30 border border-white/30'
+  };
+  
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
+const Input = ({ label, ...props }) => (
+  <div className="mb-4">
+    <label className="block text-white/90 mb-2 font-medium">{label}</label>
+    <input
+      {...props}
+      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+    />
+  </div>
+);
+
+const Textarea = ({ label, ...props }) => (
+  <div className="mb-4">
+    <label className="block text-white/90 mb-2 font-medium">{label}</label>
+    <textarea
+      {...props}
+      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none"
+      rows="4"
+    />
+  </div>
+);
+
+const LoginPage = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = async () => {
+    try {
+      // In production, implement proper Supabase auth
+      // For demo, using simple mock auth
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        onLogin(data.user, data.token);
+      } else {
+        alert('Login failed');
+      }
+    } catch (error) {
+      // Mock login for demo
+      const mockUsers = {
+        'l1@test.com': { email: 'l1@test.com', role: 'L1', name: 'L1 User' },
+        'l2@test.com': { email: 'l2@test.com', role: 'L2', name: 'L2 Approver' },
+        'l3@test.com': { email: 'l3@test.com', role: 'L3', name: 'L3 Approver' },
+        'l0@test.com': { email: 'l0@test.com', role: 'L0', name: 'L0 Viewer' },
+        'admin@test.com': { email: 'admin@test.com', role: 'admin', name: 'Admin' }
+      };
+      
+      if (mockUsers[email]) {
+        onLogin(mockUsers[email], 'mock-token-' + email);
+      } else {
+        alert('User not found. Try: l1@test.com, l2@test.com, l3@test.com, l0@test.com, or admin@test.com');
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <GlassCard className="w-full max-w-md p-8">
+        <div className="text-center mb-8">
+          <div className="inline-block p-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl mb-4">
+            <Camera className="w-12 h-12 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Approval Workflow</h1>
+          <p className="text-white/70">Sign in to continue</p>
+        </div>
+        
+        <Input
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="your@email.com"
+        />
+        
+        <Input
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+        />
+        
+        <Button onClick={handleLogin} className="w-full mt-6">
+          Sign In
+        </Button>
+        
+        <div className="mt-6 p-4 bg-white/5 rounded-xl">
+          <p className="text-xs text-white/60 text-center">Demo users: l1@test.com, l2@test.com, l3@test.com, l0@test.com, admin@test.com</p>
+        </div>
+      </GlassCard>
+    </div>
+  );
+};
+
+const L1Dashboard = ({ user, token }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    try {
+      const mockRequests = [
+        { id: 1, title: 'Budget Approval', description: 'Q4 Marketing Budget', status: 'pending', current_stage: 1, created_at: '2024-10-28' },
+        { id: 2, title: 'New Hire Request', description: 'Senior Developer Position', status: 'approved', current_stage: 3, created_at: '2024-10-25' }
+      ];
+      setRequests(mockRequests);
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    }
+  };
+
+  const createRequest = async () => {
+    if (!title || !description) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    const newRequest = {
+      id: Date.now(),
+      title,
+      description,
+      status: 'pending',
+      current_stage: 0,
+      created_at: new Date().toISOString().split('T')[0]
+    };
+
+    setRequests([newRequest, ...requests]);
+    setTitle('');
+    setDescription('');
+    setShowForm(false);
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold text-white">My Requests</h2>
+        <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
+          <Plus className="w-5 h-5" />
+          New Request
+        </Button>
+      </div>
+
+      {showForm && (
+        <GlassCard className="p-6">
+          <h3 className="text-xl font-semibold text-white mb-4">Create New Request</h3>
+          <Input
+            label="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Request title"
+          />
+          <Textarea
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe your request..."
+          />
+          <div className="flex gap-3">
+            <Button onClick={createRequest}>Submit</Button>
+            <Button onClick={() => setShowForm(false)} variant="secondary">Cancel</Button>
+          </div>
+        </GlassCard>
+      )}
+
+      <GlassCard className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-white/5">
+              <tr>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">ID</th>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">Title</th>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">Status</th>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">Stage</th>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((req) => (
+                <tr key={req.id} className="border-t border-white/10 hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 text-white">{req.id}</td>
+                  <td className="px-6 py-4 text-white">{req.title}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      req.status === 'approved' ? 'bg-green-500/20 text-green-300' :
+                      req.status === 'rejected' ? 'bg-red-500/20 text-red-300' :
+                      'bg-yellow-500/20 text-yellow-300'
+                    }`}>
+                      {req.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-white">Stage {req.current_stage}</td>
+                  <td className="px-6 py-4 text-white/70">{req.created_at}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </GlassCard>
+    </div>
+  );
+};
+
+const ApproverDashboard = ({ user, token }) => {
+  const [requests, setRequests] = useState([]);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [comment, setComment] = useState('');
+
+  useEffect(() => {
+    fetchPendingRequests();
+  }, []);
+
+  const fetchPendingRequests = async () => {
+    const mockRequests = [
+      { id: 1, title: 'Budget Approval', description: 'Q4 Marketing Budget - $50,000', requester_email: 'l1@test.com', current_stage: user.role === 'L2' ? 1 : 2 },
+      { id: 3, title: 'Equipment Purchase', description: 'New laptops for dev team', requester_email: 'l1@test.com', current_stage: user.role === 'L2' ? 1 : 2 }
+    ];
+    setRequests(mockRequests);
+  };
+
+  const handleAction = async (requestId, action) => {
+    alert(`Request ${requestId} ${action}ed with comment: ${comment || 'No comment'}`);
+    setRequests(requests.filter(r => r.id !== requestId));
+    setSelectedRequest(null);
+    setComment('');
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <h2 className="text-3xl font-bold text-white">Pending Approvals ({user.role})</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          {requests.map((req) => (
+            <GlassCard
+              key={req.id}
+              className={`p-6 cursor-pointer transition-all ${selectedRequest?.id === req.id ? 'ring-2 ring-purple-500' : ''}`}
+              onClick={() => setSelectedRequest(req)}
+            >
+              <h3 className="text-xl font-semibold text-white mb-2">{req.title}</h3>
+              <p className="text-white/70 mb-3">{req.description}</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/60">From: {req.requester_email}</span>
+                <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full">Stage {req.current_stage}</span>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+
+        {selectedRequest && (
+          <GlassCard className="p-6 h-fit sticky top-6">
+            <h3 className="text-xl font-semibold text-white mb-4">Take Action</h3>
+            <div className="mb-4 p-4 bg-white/5 rounded-xl">
+              <h4 className="text-white font-semibold mb-2">{selectedRequest.title}</h4>
+              <p className="text-white/70 text-sm">{selectedRequest.description}</p>
+            </div>
+            
+            <Textarea
+              label="Comment (optional)"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Add your comments..."
+            />
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={() => handleAction(selectedRequest.id, 'approve')}
+                variant="success"
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <CheckCircle className="w-5 h-5" />
+                Approve
+              </Button>
+              <Button
+                onClick={() => handleAction(selectedRequest.id, 'reject')}
+                variant="danger"
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <XCircle className="w-5 h-5" />
+                Reject
+              </Button>
+            </div>
+          </GlassCard>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const AdminDashboard = ({ user, token }) => {
+  const [workflow, setWorkflow] = useState(['L1', 'L2', 'L3']);
+
+  const moveUp = (index) => {
+    if (index > 0) {
+      const newWorkflow = [...workflow];
+      [newWorkflow[index], newWorkflow[index - 1]] = [newWorkflow[index - 1], newWorkflow[index]];
+      setWorkflow(newWorkflow);
+    }
+  };
+
+  const moveDown = (index) => {
+    if (index < workflow.length - 1) {
+      const newWorkflow = [...workflow];
+      [newWorkflow[index], newWorkflow[index + 1]] = [newWorkflow[index + 1], newWorkflow[index]];
+      setWorkflow(newWorkflow);
+    }
+  };
+
+  const removeStage = (index) => {
+    setWorkflow(workflow.filter((_, i) => i !== index));
+  };
+
+  const addStage = () => {
+    const role = prompt('Enter role (L1, L2, L3):');
+    if (role && ['L1', 'L2', 'L3'].includes(role)) {
+      setWorkflow([...workflow, role]);
+    }
+  };
+
+  const saveWorkflow = async () => {
+    alert('Workflow saved: ' + workflow.join(' → '));
+  };
+
+  return (
+    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+      <h2 className="text-3xl font-bold text-white">Workflow Configuration</h2>
+
+      <GlassCard className="p-6">
+        <h3 className="text-xl font-semibold text-white mb-4">Approval Flow Order</h3>
+        <p className="text-white/70 mb-6">Configure the order of approval stages. New requests will follow this workflow.</p>
+
+        <div className="space-y-3 mb-6">
+          {workflow.map((role, index) => (
+            <div key={index} className="flex items-center gap-3 bg-white/5 p-4 rounded-xl">
+              <div className="flex-1 flex items-center gap-3">
+                <span className="text-white font-semibold text-lg">{index + 1}.</span>
+                <span className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white font-semibold">
+                  {role}
+                </span>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => moveUp(index)}
+                  disabled={index === 0}
+                  className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-30"
+                >
+                  <ArrowUp className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={() => moveDown(index)}
+                  disabled={index === workflow.length - 1}
+                  className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-30"
+                >
+                  <ArrowDown className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={() => removeStage(index)}
+                  className="p-2 bg-red-500/20 rounded-lg hover:bg-red-500/30 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 text-red-300" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          <Button onClick={addStage} variant="secondary" className="flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            Add Stage
+          </Button>
+          <Button onClick={saveWorkflow}>Save Workflow</Button>
+        </div>
+      </GlassCard>
+
+      <GlassCard className="p-6">
+        <h3 className="text-xl font-semibold text-white mb-4">Current Workflow Preview</h3>
+        <div className="flex items-center gap-2 flex-wrap">
+          {workflow.map((role, index) => (
+            <React.Fragment key={index}>
+              <span className="px-4 py-2 bg-white/10 rounded-lg text-white font-semibold">
+                {role}
+              </span>
+              {index < workflow.length - 1 && (
+                <span className="text-white/50">→</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </GlassCard>
+    </div>
+  );
+};
+
+const L0Dashboard = ({ user, token }) => {
+  const [requests, setRequests] = useState([]);
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    const mockRequests = [
+      { id: 1, title: 'Budget Approval', status: 'pending', requester_email: 'l1@test.com', created_at: '2024-10-28' },
+      { id: 2, title: 'New Hire Request', status: 'approved', requester_email: 'l1@test.com', created_at: '2024-10-25' },
+      { id: 3, title: 'Equipment Purchase', status: 'pending', requester_email: 'l1@test.com', created_at: '2024-10-27' }
+    ];
+    
+    setRequests(mockRequests);
+    setStats({
+      total: mockRequests.length,
+      pending: mockRequests.filter(r => r.status === 'pending').length,
+      approved: mockRequests.filter(r => r.status === 'approved').length,
+      rejected: mockRequests.filter(r => r.status === 'rejected').length
+    });
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+        <Eye className="w-8 h-8" />
+        Dashboard Overview
+      </h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <GlassCard className="p-6">
+          <div className="text-white/70 mb-2">Total Requests</div>
+          <div className="text-4xl font-bold text-white">{stats.total}</div>
+        </GlassCard>
+        <GlassCard className="p-6">
+          <div className="text-white/70 mb-2">Pending</div>
+          <div className="text-4xl font-bold text-yellow-300">{stats.pending}</div>
+        </GlassCard>
+        <GlassCard className="p-6">
+          <div className="text-white/70 mb-2">Approved</div>
+          <div className="text-4xl font-bold text-green-300">{stats.approved}</div>
+        </GlassCard>
+        <GlassCard className="p-6">
+          <div className="text-white/70 mb-2">Rejected</div>
+          <div className="text-4xl font-bold text-red-300">{stats.rejected}</div>
+        </GlassCard>
+      </div>
+
+      <GlassCard className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-white/5">
+              <tr>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">ID</th>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">Title</th>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">Requester</th>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">Status</th>
+                <th className="px-6 py-4 text-left text-white/90 font-semibold">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((req) => (
+                <tr key={req.id} className="border-t border-white/10 hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 text-white">{req.id}</td>
+                  <td className="px-6 py-4 text-white">{req.title}</td>
+                  <td className="px-6 py-4 text-white/70">{req.requester_email}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      req.status === 'approved' ? 'bg-green-500/20 text-green-300' :
+                      req.status === 'rejected' ? 'bg-red-500/20 text-red-300' :
+                      'bg-yellow-500/20 text-yellow-300'
+                    }`}>
+                      {req.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-white/70">{req.created_at}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </GlassCard>
+    </div>
+  );
+};
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+
+  const handleLogin = (userData, authToken) => {
+    setUser(userData);
+    setToken(authToken);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setToken(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+      {!user ? (
+        <LoginPage onLogin={handleLogin} />
+      ) : (
+        <>
+          <nav className="backdrop-blur-lg bg-white/10 border-b border-white/20 sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold text-white">Approval System</h1>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-white font-semibold">{user.name}</div>
+                  <div className="text-white/70 text-sm">{user.role}</div>
+                </div>
+                <Button onClick={handleLogout} variant="secondary" className="flex items-center gap-2">
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </nav>
+
+          <div className="max-w-7xl mx-auto">
+            {user.role === 'L1' && <L1Dashboard user={user} token={token} />}
+            {(user.role === 'L2' || user.role === 'L3') && <ApproverDashboard user={user} token={token} />}
+            {user.role === 'admin' && <AdminDashboard user={user} token={token} />}
+            {user.role === 'L0' && <L0Dashboard user={user} token={token} />}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
