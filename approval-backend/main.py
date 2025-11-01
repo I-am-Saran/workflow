@@ -269,18 +269,23 @@ if __name__ == "__main__":
 
 @app.post("/api/login")
 async def login(email: str = Form(...), password: str = Form(...)):
+    print(f"Login attempt with email: {email}")  # Debug log to check email
+
     # Query Supabase users table
     response = supabase.table("users").select("*").eq("email", email).execute()
+
     if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
 
     user = response.data[0]
     
-    # For demo: accept any password
-    if password == "" or password is None:
+    # For demo: accept any password, check if password is not empty
+    if not password:
         raise HTTPException(status_code=400, detail="Password required")
 
     # (Optional: match hashed password here if you store real passwords)
 
     token = f"mock-token-{email}"
     return {"user": user, "token": token}
+
+
