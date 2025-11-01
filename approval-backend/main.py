@@ -279,11 +279,9 @@ async def login(email: str = Form(...), password: str = Form(...)):
 
     user = response.data[0]
     
-    # For demo: accept any password, check if password is not empty
-    if not password:
-        raise HTTPException(status_code=400, detail="Password required")
-
-    # (Optional: match hashed password here if you store real passwords)
+    # Validate the password
+    if password != user['password']:
+        raise HTTPException(status_code=401, detail="Invalid password")
 
     token = f"mock-token-{email}"
     return {"user": user, "token": token}
