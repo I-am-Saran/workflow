@@ -12,15 +12,15 @@ app = FastAPI()
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with your Vercel domain in production
+    allow_origins=["https://workflow-62ca6174o-saranrajs-projects-f67265d0.vercel.app/"],  # Update with your Vercel domain in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Supabase Configuration
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = os.getenv("https://uxhmfriecraetlrpjrep.supabase.co")
+SUPABASE_KEY = os.getenv("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4aG1mcmllY3JhZXRscnBqcmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5MTAzMTMsImV4cCI6MjA3NzQ4NjMxM30.NIuqhYImDXL2gNsnMKtjiOCN7feXw-HjC32pgkYDrmM")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Models
