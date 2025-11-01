@@ -482,21 +482,31 @@ const L0Dashboard = ({ user, token }) => {
   }, []);
 
   const fetchDashboard = async () => {
-    const mockRequests = [
-      { id: 1, title: 'Budget Approval', status: 'pending', requester_email: 'l1@test.com', created_at: '2024-10-28', current_stage: 1 },
-      { id: 2, title: 'New Hire Request', status: 'approved', requester_email: 'l1@test.com', created_at: '2024-10-25', current_stage: 3 },
-      { id: 3, title: 'Equipment Purchase', status: 'pending', requester_email: 'l1@test.com', created_at: '2024-10-27', current_stage: 2 },
-      { id: 4, title: 'Office Renovation', status: 'rejected', requester_email: 'l1@test.com', created_at: '2024-10-26', current_stage: 1 }
-    ];
-    
-    setRequests(mockRequests);
-    setStats({
-      total: mockRequests.length,
-      pending: mockRequests.filter(r => r.status === 'pending').length,
-      approved: mockRequests.filter(r => r.status === 'approved').length,
-      rejected: mockRequests.filter(r => r.status === 'rejected').length
+  try {
+    const res = await fetch("https://approval-workflow-api.onrender.com/api/dashboard", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
     });
-  };
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch dashboard data");
+    }
+
+    const data = await res.json();
+
+    setRequests(data.requests || []);
+    setStats({
+      total: data.total || 0,
+      pending: data.pending || 0,
+      approved: data.approved || 0,
+      rejected: data.rejected || 0,
+    });
+  } catch (error) {
+    console.error("Error loading dashboard:", error);
+  }
+};
+
 
   return (
     <div className="p-6 space-y-6">
