@@ -57,7 +57,7 @@ const LoginPage = ({ onLogin }) => {
     e.preventDefault();
 
     try {
-      const res = await fetch('https://approval-workflow-api.onrender.com/login', {  // 👈 Updated endpoint
+      const res = await fetch('https://approval-workflow-api.onrender.com/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -73,6 +73,12 @@ const LoginPage = ({ onLogin }) => {
       }
 
       const data = await res.json();
+
+      // ✅ Save user + token in localStorage
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
+
+      // Continue existing login logic
       onLogin(data.user, data.token);
     } catch (err) {
       console.error('Login error:', err);
@@ -105,7 +111,6 @@ const LoginPage = ({ onLogin }) => {
     </div>
   );
 };
-
 
 
 const L1Dashboard = ({ user, token }) => {
@@ -586,14 +591,32 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
 
+  // 👇 Restore user + token on page load
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    const savedToken = localStorage.getItem('token');
+    if (savedUser && savedToken) {
+      setUser(JSON.parse(savedUser));
+      setToken(savedToken);
+    }
+  }, []);
+
   const handleLogin = (userData, authToken) => {
     setUser(userData);
     setToken(authToken);
+
+    // 👇 Save user + token to localStorage
+    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('token', authToken);
   };
 
   const handleLogout = () => {
     setUser(null);
     setToken(null);
+
+    // 👇 Remove from localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   return (
@@ -634,3 +657,4 @@ export default function App() {
     </div>
   );
 }
+
