@@ -128,15 +128,15 @@ const L1Dashboard = ({ user, token }) => {
     console.log("Fetching requests for:", user?.email);
 
     const res = await fetch(
-      `https://approval-workflow-api.onrender.com/api/requests?requester_email=${encodeURIComponent(user.email)}`,
-      {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+  "https://approval-workflow-api.onrender.com/api/requests/my-requests",
+  {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
 
     if (!res.ok) {
       const err = await res.json();
