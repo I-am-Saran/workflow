@@ -19,8 +19,8 @@ app.add_middleware(
 )
 
 # Supabase Configuration
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = "https://uxhmfriecraetlrpjrep.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4aG1mcmllY3JhZXRscnBqcmVwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTkxMDMxMywiZXhwIjoyMDc3NDg2MzEzfQ.LMSMPnBZ6TOO3o3HjbZ8hEi6O2QfmALQwu6_i3D_HtY"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Models
