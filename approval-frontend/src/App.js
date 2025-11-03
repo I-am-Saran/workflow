@@ -137,29 +137,34 @@ const L1Dashboard = ({ user, token }) => {
     return;
   }
 
+  console.log("Submitting new request...", { title, description, token, email: user?.email }); // ✅ Debug log
+
   try {
     const res = await fetch('https://approval-workflow-api.onrender.com/api/requests', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`, // 👈 Pass JWT or token from login
+        'Authorization': `Bearer ${token}`, // must not be undefined
       },
       body: JSON.stringify({
         title: title,
         description: description,
-        requester_email: user.email, // 👈 Add this field (backend expects it)
+        requester_email: user.email,
       }),
     });
 
+    console.log("API response:", res);
+
     if (!res.ok) {
       const err = await res.json();
+      console.error("API error:", err);
       alert(err.detail || 'Failed to create request');
       return;
     }
 
     const data = await res.json();
+    console.log("Request created:", data);
 
-    // Add the newly created request to local list
     setRequests([data, ...requests]);
     setTitle('');
     setDescription('');
@@ -169,7 +174,7 @@ const L1Dashboard = ({ user, token }) => {
     console.error('Create request error:', error);
     alert('Error connecting to API');
   }
-};
+  };
 
 
   const getStageInfo = (req) => {
