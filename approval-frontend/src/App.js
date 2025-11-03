@@ -132,27 +132,45 @@ const L1Dashboard = ({ user, token }) => {
   };
 
   const createRequest = async () => {
-    if (!title || !description) {
-      alert('Please fill all fields');
+  if (!title || !description) {
+    alert('Please fill all fields');
+    return;
+  }
+
+  try {
+    const res = await fetch('https://approval-workflow-api.onrender.com/api/requests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`, // 👈 Pass JWT or token from login
+      },
+      body: JSON.stringify({
+        title: title,
+        description: description,
+        requester_email: user.email, // 👈 Add this field (backend expects it)
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.detail || 'Failed to create request');
       return;
     }
 
-    const newRequest = {
-      id: Date.now(),
-      title,
-      description,
-      status: 'pending',
-      current_stage: 0,
-      workflow_snapshot: ['L1', 'L2', 'L3'],
-      created_at: new Date().toISOString().split('T')[0]
-    };
+    const data = await res.json();
 
-    setRequests([newRequest, ...requests]);
+    // Add the newly created request to local list
+    setRequests([data, ...requests]);
     setTitle('');
     setDescription('');
     setShowForm(false);
     alert('Request created successfully!');
-  };
+  } catch (error) {
+    console.error('Create request error:', error);
+    alert('Error connecting to API');
+  }
+};
+
 
   const getStageInfo = (req) => {
     const workflow = req.workflow_snapshot || ['L1', 'L2', 'L3'];
