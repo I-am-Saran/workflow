@@ -267,7 +267,7 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
-@app.post("/api/login")
+@app.post("/login")
 async def login(email: str = Form(...), password: str = Form(...)):
     print(f"Login attempt with email: {email}")  # Debug log to check email
 
@@ -285,5 +285,3 @@ async def login(email: str = Form(...), password: str = Form(...)):
 
     token = f"mock-token-{email}"
     return {"user": user, "token": token}
-
-
