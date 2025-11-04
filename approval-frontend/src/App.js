@@ -296,7 +296,7 @@ const ApproverDashboard = ({ user, token }) => {
 const fetchPendingRequests = async () => {
   try {
     const response = await fetch(
-      `https://approval-workflow-api.onrender.com/api/requests?requester_email=${user.email}`,
+      "https://approval-workflow-api.onrender.com/api/requests/my-requests",
       {
         method: "GET",
         headers: {
@@ -307,14 +307,18 @@ const fetchPendingRequests = async () => {
     );
 
     if (!response.ok) {
-      console.error("Failed to fetch requests:", response.statusText);
+      const err = await response.json();
+      console.error("Failed to fetch requests:", err.detail || response.statusText);
+      alert(`Failed to load requests: ${err.detail || response.statusText}`);
       return;
     }
 
     const data = await response.json();
+    console.log("Fetched requests:", data);
     setRequests(data);
   } catch (error) {
     console.error("Error fetching requests:", error);
+    alert("Error connecting to the server");
   }
 };
 
