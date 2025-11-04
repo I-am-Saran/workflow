@@ -293,15 +293,33 @@ const ApproverDashboard = ({ user, token }) => {
     fetchPendingRequests();
   }, []);
 
-  const fetchPendingRequests = async () => {
-    const mockRequests = [
-      { id: 1, title: 'Budget Approval', description: 'Q4 Marketing Budget - $50,000 for digital campaigns', requester_email: 'l1@test.com', current_stage: user.role === 'L2' ? 1 : 2, workflow_snapshot: ['L1', 'L2', 'L3'] },
-      { id: 3, title: 'Equipment Purchase', description: 'New MacBook Pro laptops for development team (5 units)', requester_email: 'l1@test.com', current_stage: user.role === 'L2' ? 1 : 2, workflow_snapshot: ['L1', 'L2', 'L3'] }
-    ];
-    setRequests(mockRequests);
-  };
+const fetchPendingRequests = async () => {
+  try {
+    const response = await fetch(
+      `https://approval-workflow-api.onrender.com/api/requests?requester_email=${user.email}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      }
+    );
 
-  const handleAction = async (requestId, action) => {
+    if (!response.ok) {
+      console.error("Failed to fetch requests:", response.statusText);
+      return;
+    }
+
+    const data = await response.json();
+    setRequests(data);
+  } catch (error) {
+    console.error("Error fetching requests:", error);
+  }
+};
+
+
+const handleAction = async (requestId, action) => {
     const actionMsg = action === 'approve' ? '✅ Approved' : '❌ Rejected';
     alert(`${actionMsg} request #${requestId}\n${comment ? `Comment: ${comment}` : 'No comment provided'}`);
     setRequests(requests.filter(r => r.id !== requestId));
