@@ -295,7 +295,7 @@ const ApproverDashboard = ({ user, token }) => {
 
 const fetchPendingRequests = async () => {
   try {
-    const response = await fetch(`${API_URL}/api/requests/pending/${user.role}`, {
+    const response = await fetch(`${API_BASE}/api/requests/pending/${user.role}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) throw new Error(`Failed to load requests`);
