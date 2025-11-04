@@ -72,10 +72,9 @@ async def create_request(request: ApprovalRequest, user=Depends(get_current_user
     config = supabase.table("workflow_config").select("*").eq("id", 1).execute()
     workflow_order = config.data[0]["workflow_order"] if config.data else ["L1", "L2", "L3"]
 
-    # If the first stage is L1 (requester), start approvals at the next stage so L2 sees it.
+    # If the first stage is L1, start approvals at the next stage so L2 sees it.
     initial_stage = 1 if workflow_order and workflow_order[0].upper() == "L1" else 0
     
-    # Create request
     new_request = {
         "title": request.title,
         "description": request.description,
@@ -89,7 +88,6 @@ async def create_request(request: ApprovalRequest, user=Depends(get_current_user
     
     result = supabase.table("approval_requests").insert(new_request).execute()
     
-    # Create approval history entry
     history = {
         "request_id": result.data[0]["id"],
         "stage": 0,
@@ -117,11 +115,9 @@ async def get_my_requests(user=Depends(get_current_user)):
 
 @app.get("/api/requests/pending/{role}")
 async def get_pending_requests(role: str, user=Depends(get_current_user)):
-    # Security: only allow logged-in users to view their own role's requests (admin can be added if needed)
     if user["role"] != role:
         raise HTTPException(status_code=403, detail="Access denied for this role")
 
-    # Get all pending requests, then filter to the ones where the current stage matches this role
     result = supabase.table("approval_requests")\
         .select("*")\
         .eq("status", "pending")\
@@ -140,17 +136,13 @@ async def get_pending_requests(role: str, user=Depends(get_current_user)):
 @app.get("/api/requests/{request_id}")
 async def get_request(request_id: int, user=Depends(get_current_user)):
     result = supabase.table("approval_requests").select("*").eq("id", request_id).execute()
-    
     if not result.data:
         raise HTTPException(status_code=404, detail="Request not found")
     
     request = result.data[0]
-    
-    # Check permissions
     if user["role"] == "L1" and request["requester_email"] != user["email"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Get approval history
     history = supabase.table("approval_history")\
         .select("*")\
         .eq("request_id", request_id)\
@@ -165,7 +157,6 @@ async def perform_action(request_id: int, action: ApprovalAction, user=Depends(g
     if user["role"] not in ["L2", "L3"]:
         raise HTTPException(status_code=403, detail="Only L2/L3 can approve/reject")
     
-    # Get request
     result = supabase.table("approval_requests").select("*").eq("id", request_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Request not found")
@@ -174,11 +165,9 @@ async def perform_action(request_id: int, action: ApprovalAction, user=Depends(g
     workflow = request["workflow_snapshot"]
     current_stage = request["current_stage"]
     
-    # Verify user is at correct stage
     if current_stage >= len(workflow) or workflow[current_stage] != user["role"]:
         raise HTTPException(status_code=403, detail="Not your turn to approve")
     
-    # Record action in history
     history = {
         "request_id": request_id,
         "stage": current_stage,
@@ -190,31 +179,26 @@ async def perform_action(request_id: int, action: ApprovalAction, user=Depends(g
     }
     supabase.table("approval_history").insert(history).execute()
     
-    # Update request based on action
     if action.action == "approve":
         next_stage = current_stage + 1
         if next_stage >= len(workflow):
-            # Final approval
             supabase.table("approval_requests").update({
                 "status": "approved",
-                "current_stage": current_stage,  # keep at last valid index
+                "current_stage": current_stage,
                 "updated_at": datetime.utcnow().isoformat()
             }).eq("id", request_id).execute()
         else:
-            # Move to next stage
             supabase.table("approval_requests").update({
                 "current_stage": next_stage,
                 "updated_at": datetime.utcnow().isoformat()
             }).eq("id", request_id).execute()
     else:  # reject
         if current_stage > 0:
-            # Return to previous stage (so requester/L1 can update and resubmit)
             supabase.table("approval_requests").update({
                 "current_stage": current_stage - 1,
                 "updated_at": datetime.utcnow().isoformat()
             }).eq("id", request_id).execute()
         else:
-            # If already at the first stage, mark rejected
             supabase.table("approval_requests").update({
                 "status": "rejected",
                 "updated_at": datetime.utcnow().isoformat()
@@ -234,9 +218,7 @@ async def update_workflow(config: WorkflowConfig, user=Depends(get_current_user)
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only admin can update workflow")
     
-    # Check if config exists
     existing = supabase.table("workflow_config").select("*").eq("id", 1).execute()
-    
     if existing.data:
         result = supabase.table("workflow_config").update({
             "workflow_order": config.workflow_order,
@@ -248,7 +230,6 @@ async def update_workflow(config: WorkflowConfig, user=Depends(get_current_user)
             "workflow_order": config.workflow_order,
             "updated_at": datetime.utcnow().isoformat()
         }).execute()
-    
     return result.data[0]
 
 @app.get("/api/dashboard")
@@ -256,7 +237,6 @@ async def get_dashboard(user=Depends(get_current_user)):
     if user["role"] not in ["L0", "admin"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Get all requests with summary
     all_requests = supabase.table("approval_requests")\
         .select("*")\
         .order("created_at", desc=True)\
@@ -269,20 +249,15 @@ async def get_dashboard(user=Depends(get_current_user)):
         "rejected": len([r for r in all_requests.data if r["status"] == "rejected"]),
         "requests": all_requests.data
     }
-    
     return summary
 
 @app.post("/login")
 async def login(email: str = Form(...), password: str = Form(...)):
-    # Query Supabase users table
     response = supabase.table("users").select("*").eq("email", email).execute()
-
     if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
 
     user = response.data[0]
-    
-    # Validate the password (simple check for demo)
     if password != user['password']:
         raise HTTPException(status_code=401, detail="Invalid password")
 
