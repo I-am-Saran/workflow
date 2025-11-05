@@ -56,6 +56,10 @@ const LoginPage = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!email || !password) {
+    alert("Please enter both email and password");
+    return;
+    }
     try {
       const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
